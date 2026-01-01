@@ -1,0 +1,209 @@
+{
+  "collections": [
+    "portfolios",
+    "jobs",
+    "accounts",
+    "users",
+    "simulations",
+    "projecttemplates",
+    "sessions",
+    "conversations",
+    "messages",
+    "profiles",
+    "badges",
+    "feedbacks",
+    "projects",
+    "authsessions",
+    "files"
+  ],
+  "templates": [
+    {
+      "_id": "694a883eedcfab2bd3153b9b",
+      "title": "E-commerce Product Page",
+      "description": "Design and develop a responsive product page with filtering options, image gallery, and add-to-cart functionality.",
+      "duration": "3-5 hours",
+      "difficulty": "Intermediate",
+      "difficultyLevel": 3,
+      "technologies": [
+        "React",
+        "CSS",
+        "API"
+      ],
+      "gradientColors": "from-blue-500 via-blue-600 to-indigo-600"
+    },
+    {
+      "_id": "694a883eedcfab2bd3153b9c",
+      "title": "Landing Page Design",
+      "description": "Create a modern landing page for a SaaS product with responsive layout, animations, and email signup form.",
+      "duration": "1-2 Hours",
+      "difficulty": "Beginner",
+      "difficultyLevel": 2,
+      "technologies": [
+        "HTML",
+        "CSS",
+        "JavaScript"
+      ],
+      "gradientColors": "from-purple-500 via-purple-600 to-pink-500"
+    },
+    {
+      "_id": "694a883eedcfab2bd3153b9d",
+      "title": "Dashboard UI Development",
+      "description": "Build a complete admin dashboard with data visualization, user management, and responsive layouts.",
+      "duration": "1 week+",
+      "difficulty": "Beginner",
+      "difficultyLevel": 4,
+      "technologies": [
+        "React",
+        "TailwindCSS"
+      ],
+      "gradientColors": "from-green-500 via-emerald-500 to-teal-500"
+    },
+    {
+      "_id": "694a883eedcfab2bd3153b9e",
+      "title": "Blog Platform API",
+      "description": "Develop a RESTful API for a blog platform with user authentication, post management, and comments.",
+      "duration": "3-5 days",
+      "difficulty": "Intermediate",
+      "difficultyLevel": 3,
+      "technologies": [
+        "Node.js",
+        "Express",
+        "MongoDB"
+      ],
+      "gradientColors": "from-yellow-400 via-orange-400 to-orange-500"
+    },
+    {
+      "_id": "694a883eedcfab2bd3153b9f",
+      "title": "Mobile App UI Design",
+      "description": "Create a mobile app UI design for a fitness tracking application with clean and modern aesthetics.",
+      "duration": "1-2 days",
+      "difficulty": "Beginner",
+      "difficultyLevel": 2,
+      "technologies": [
+        "Figma",
+        "UI/UX",
+        "Mobile"
+      ],
+      "gradientColors": "from-red-500 via-rose-500 to-pink-500"
+    },
+    {
+      "_id": "694a883eedcfab2bd3153ba0",
+      "title": "Full-Stack Social Platform",
+      "description": "Build a social media platform with user profiles, posts, comments, and real-time notifications.",
+      "duration": "1 week+",
+      "difficulty": "Advanced",
+      "difficultyLevel": 5,
+      "technologies": [
+        "React",
+        "Node.js",
+        "Socket.io"
+      ],
+      "gradientColors": "from-blue-400 via-cyan-400 to-cyan-500"
+    },
+    {
+      "_id": "6953f44270999550306f311a",
+      "name": "E-commerce Platform",
+      "shortDescription": "Build a full-featured e-commerce platform with product catalog, cart, and checkout",
+      "longDescription": "Create a complete e-commerce solution with user authentication, product management, shopping cart functionality, and secure payment processing. Includes admin panel for inventory management.",
+      "requiredSkills": [
+        "JavaScript",
+        "React",
+        "Node.js",
+        "MongoDB",
+        "Stripe"
+      ],
+      "expertiseLevel": "advanced",
+      "durationEstimateDays": 90,
+      "tags": [
+        "e-commerce",
+        "full-stack",
+        "payments"
+      ],
+      "complexityScore": 8,
+      "createdBy": "6953f44170999550306f310a",
+      "isActive": true,
+      "version": 1,
+      "createdAt": "2025-12-30T15:48:18.316Z",
+      "updatedAt": "2025-12-30T15:48:18.316Z",
+      "__v": 0
+    },
+    {
+      "_id": "6953f44270999550306f3136",
+      "name": "Task Management App",
+      "shortDescription": "Create a modern task management application with real-time collaboration",
+      "longDescription": "Build a Trello-like board with drag-and-drop functionality, real-time updates, team collaboration features, and project analytics.",
+      "requiredSkills": [
+        "JavaScript",
+        "React",
+        "Node.js",
+        "Socket.io"
+      ],
+      "expertiseLevel": "intermediate",
+      "durationEstimateDays": 45,
+      "tags": [
+        "productivity",
+        "real-time",
+        "collaboration"
+      ],
+      "complexityScore": 6,
+      "createdBy": "6953f44170999550306f310a",
+      "isActive": true,
+      "version": 1,
+      "createdAt": "2025-12-30T15:48:18.762Z",
+      "updatedAt": "2025-12-30T15:48:18.762Z",
+      "__v": 0
+    },
+    {
+      "_id": "6953f44270999550306f313a",
+      "name": "Blog Platform",
+      "shortDescription": "Build a modern blog platform with CMS features",
+      "longDescription": "Create a content management system for blogs with markdown editor, SEO optimization, comment system, and analytics dashboard.",
+      "requiredSkills": [
+        "JavaScript",
+        "React",
+        "Node.js",
+        "MongoDB"
+      ],
+      "expertiseLevel": "beginner",
+      "durationEstimateDays": 30,
+      "tags": [
+        "content",
+        "cms",
+        "blog"
+      ],
+      "complexityScore": 4,
+      "createdBy": "6953f44170999550306f310a",
+      "isActive": true,
+      "version": 1,
+      "createdAt": "2025-12-30T15:48:18.844Z",
+      "updatedAt": "2025-12-30T15:48:18.844Z",
+      "__v": 0
+    },
+    {
+      "_id": "6953f44270999550306f313d",
+      "name": "Real-time Chat Application",
+      "shortDescription": "Develop a scalable real-time messaging platform",
+      "longDescription": "Build a modern chat application with WebSocket support, group chats, file sharing, emoji reactions, and end-to-end encryption.",
+      "requiredSkills": [
+        "JavaScript",
+        "Socket.io",
+        "React",
+        "Redis"
+      ],
+      "expertiseLevel": "intermediate",
+      "durationEstimateDays": 60,
+      "tags": [
+        "real-time",
+        "messaging",
+        "websockets"
+      ],
+      "complexityScore": 7,
+      "createdBy": "6953f44170999550306f310a",
+      "isActive": true,
+      "version": 1,
+      "createdAt": "2025-12-30T15:48:18.976Z",
+      "updatedAt": "2025-12-30T15:48:18.976Z",
+      "__v": 0
+    }
+  ]
+}

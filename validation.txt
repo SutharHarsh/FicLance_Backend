@@ -1,0 +1,36 @@
+# Project Template Validation Rules
+
+This document outlines the required payload for creating a Project Template and explains each field's purpose.
+
+## Creation Payload (POST /templates)
+
+When creating a new project template, you must pass the following fields in the JSON body. These are enforced by the `createTemplateSchema` in `backend/src/validation/template.validation.js`.
+
+| Field Name | Type | Required | Description |
+|------------|------|----------|-------------|
+| **name** | String | Yes | The title of the project template (e.g., "E-commerce Platform"). Min 3, Max 200 characters. |
+| **shortDescription** | String | Yes | A brief summary of the project to be shown on listing cards. Max 500 characters. |
+| **longDescription** | String | Yes | A detailed breakdown of the project, goals, and requirements. Max 5000 characters. |
+| **requiredSkills** | Array[String] | Yes | An array of technologies required (e.g., ["React", "Node.js"]). At least one skill is required. |
+| **expertiseLevel** | String | Yes | Difficulty level. Must be one of: `beginner`, `intermediate`, `advanced`. |
+| **durationEstimateDays** | Number | Yes | Estimated time to complete the project in days (1-365). |
+| **tags** | Array[String] | No | Keywords for categorization and search (e.g., ["web", "fintech"]). |
+| **complexityScore** | Number | No | A rating from 1 to 10 indicating how difficult the project is. |
+| **sampleRepoUrl** | String | No | A valid URL to a sample repository that implements this template. |
+
+---
+
+## ⚠️ Important Naming Discrepancies Found
+
+During the analysis of the backend (`backend/src/controllers/template.controller.js`), a significant naming mismatch was discovered between the **Creation API** and the **Listing/Filtering API**.
+
+If you use the names above to create a project, the current **Listing API** might not find them correctly because it expects different field names for filtering:
+
+1. **Title vs Name**: The search logic looks for a `title` field, but the model and validation use `name`.
+2. **Description vs shortDescription**: The search logic looks for a `description` field, but the model and validation use `shortDescription`.
+3. **Difficulty vs expertiseLevel**: The filter logic looks for a `difficulty` field in the DB, but the model uses `expertiseLevel`.
+4. **Duration vs durationEstimateDays**: The filter logic looks for a `duration` field, but the model uses `durationEstimateDays`.
+5. **Technologies vs requiredSkills**: The filter logic looks for a `technologies` field, but the model uses `requiredSkills`.
+
+### Recommendation
+To ensure your templates are correctly showcased in the frontend, the `template.controller.js` should be updated to align with the `ProjectTemplate` model. I have prepared an implementation plan to fix these inconsistencies.

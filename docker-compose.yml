@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: ficlance-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ficlance
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - ficlance-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/ficlance --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for BullMQ and caching
+  redis:
+    image: redis:7-alpine
+    container_name: ficlance-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ficlance-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO (S3-compatible storage for local development)
+  minio:
+    image: minio/minio:latest
+    container_name: ficlance-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - ficlance-network
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API Server
+  backend:
+    build:
+      context: .
+      target: development
+    container_name: ficlance-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      MONGODB_URI: mongodb://mongodb:27017/ficlance
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_FORCE_PATH_STYLE: true
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - ficlance-network
+    command: npm run dev
+
+  # Background Worker
+  worker:
+    build:
+      context: .
+      target: development
+    container_name: ficlance-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      MONGODB_URI: mongodb://mongodb:27017/ficlance
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_FORCE_PATH_STYLE: true
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - ficlance-network
+    command: npm run worker
+
+networks:
+  ficlance-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  mongodb_config:
+  redis_data:
+  minio_data:

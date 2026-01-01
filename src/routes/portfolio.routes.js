@@ -1,0 +1,35 @@
+const express = require("express");
+const router = express.Router();
+const portfolioController = require("../controllers/portfolio.controller");
+const { authenticate } = require("../middleware/auth");
+const { validate } = require("../middleware/validation");
+const {
+  analyzeRepositorySchema,
+} = require("../validation/portfolio.validation");
+
+// Public portfolio access
+router.get("/user/:username", portfolioController.getPublicPortfolio);
+
+// All other portfolio routes require authentication
+router.use(authenticate);
+
+router.post(
+  "/analyze/sync",
+  validate(analyzeRepositorySchema),
+  portfolioController.analyzeRepositorySync
+);
+
+router.post(
+  "/analyze",
+  validate(analyzeRepositorySchema),
+  portfolioController.analyzeRepository
+);
+
+// List my portfolio
+router.get("/", portfolioController.listUserPortfolio);
+
+router.get("/:id", portfolioController.getPortfolio);
+
+router.post("/:id/retry", portfolioController.retryAnalysis);
+
+module.exports = router;
