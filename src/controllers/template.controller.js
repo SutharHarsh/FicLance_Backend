@@ -1,4 +1,4 @@
-const { ProjectTemplate } = require("../models");
+﻿const Project = require("../../models/Project");
 const { successResponse, errorResponse } = require("../utils/response");
 
 /**
@@ -15,7 +15,7 @@ async function listTemplates(req, res, next) {
 
     // 1. Difficulty / Expertise Filter
     const difficultyParam = difficulty || expertise;
-    if (difficultyParam && difficultyParam !== "All") {
+    if (difficultyParam && difficultyParam !== "All" && difficultyParam !== "Shuffle") {
       const difficultyRegex = new RegExp(`^${difficultyParam}$`, "i");
       conditions.push({
         $or: [
@@ -25,41 +25,26 @@ async function listTemplates(req, res, next) {
       });
     }
 
-    // 2. Duration filter
+    // 2. Duration filter - flexible matching
     if (duration && duration !== "Any duration") {
-      const numericDays = parseInt(duration.replace(/[^0-9]/g, ""));
-      const durationConditions = [];
-
-      // Numeric check for durationEstimateDays
-      if (!isNaN(numericDays)) {
-        durationConditions.push({
-          durationEstimateDays: { $lte: numericDays },
-        });
-      }
-
-      // String check for 'duration' field (e.g. "3-5 hours", "1 week")
-      durationConditions.push({
-        duration: { $regex: new RegExp(duration, "i") },
+      // Match projects that contain the duration string (e.g. "1-2 hours" matches projects with "1-2 hours" or similar)
+      conditions.push({
+        durationEstimateDays: { $regex: new RegExp(duration, "i") }
       });
-
-      conditions.push({ $or: durationConditions });
     }
 
-    // 3. Skills / Technologies filter
+    // 3. Skills / Technologies filter - flexible matching
+    // Show projects that have ANY of the selected skills (not ALL)
     if (skills) {
       const skillList = Array.isArray(skills)
         ? skills
         : skills.split(",").map((s) => s.trim());
 
-      const skillRegexes = skillList.map(
-        (skill) => new RegExp(`^${skill}$`, "i")
-      );
-
+      // Match projects that contain at least one of the selected skills
+      const skillRegexes = skillList.map(skill => new RegExp(skill, "i"));
+      
       conditions.push({
-        $or: [
-          { requiredSkills: { $in: skillRegexes } },
-          { technologies: { $in: skillRegexes } },
-        ],
+        requiredSkills: { $in: skillRegexes }
       });
     }
 
@@ -80,7 +65,7 @@ async function listTemplates(req, res, next) {
 
     console.log("[Templates] Query:", JSON.stringify(query, null, 2));
 
-    const templates = await ProjectTemplate.find(query)
+    const templates = await Project.find(query)
       .sort({ createdAt: -1 })
       .limit(parseInt(limit) || 50)
       .select("-__v")
@@ -102,7 +87,7 @@ async function getTemplate(req, res, next) {
   try {
     const { id } = req.params;
 
-    const template = await ProjectTemplate.findById(id);
+    const template = await Project.findById(id);
 
     if (!template) {
       return res.status(404).json(errorResponse("Template not found"));
@@ -119,7 +104,7 @@ async function getTemplate(req, res, next) {
  */
 async function createTemplate(req, res, next) {
   try {
-    const template = await ProjectTemplate.create(req.body);
+    const template = await Project.create(req.body);
     return res.status(201).json(successResponse(template, "Template created"));
   } catch (error) {
     next(error);
@@ -132,7 +117,7 @@ async function createTemplate(req, res, next) {
 async function updateTemplate(req, res, next) {
   try {
     const { id } = req.params;
-    const template = await ProjectTemplate.findByIdAndUpdate(id, req.body, {
+    const template = await Project.findByIdAndUpdate(id, req.body, {
       new: true,
     });
     if (!template)
@@ -149,7 +134,7 @@ async function updateTemplate(req, res, next) {
 async function deleteTemplate(req, res, next) {
   try {
     const { id } = req.params;
-    const template = await ProjectTemplate.findByIdAndDelete(id);
+    const template = await Project.findByIdAndDelete(id);
     if (!template)
       return res.status(404).json(errorResponse("Template not found"));
     return res.json(successResponse(null, "Template deleted"));
@@ -165,3 +150,4 @@ module.exports = {
   updateTemplate,
   deleteTemplate,
 };
+
