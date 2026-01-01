@@ -84,9 +84,10 @@ const envSchema = Joi.object({
   // Project Limits
   MAX_ACTIVE_PROJECTS: Joi.number().integer().min(1).optional(),
   
-  // Email Configuration
-  EMAIL_USER: Joi.string().email().optional(),
-  EMAIL_PASS: Joi.string().optional(),
+  // Email Configuration (Resend API - Production)
+  RESEND_API_KEY: Joi.string().optional(),
+  SUPPORT_SENDER_EMAIL: Joi.string().email().optional(),
+  SUPPORT_RECEIVER_EMAIL: Joi.string().email().optional(),
   
   // Feature flags
   ENABLE_WORKERS: Joi.boolean().default(false),
@@ -238,9 +239,10 @@ const config = {
   // Project Limits
   maxActiveProjects: env.MAX_ACTIVE_PROJECTS,
 
-  // Email Configuration
-  emailUser: env.EMAIL_USER,
-  emailPass: env.EMAIL_PASS,
+  // Email Configuration (Resend API)
+  resendApiKey: env.RESEND_API_KEY,
+  supportSenderEmail: env.SUPPORT_SENDER_EMAIL,
+  supportReceiverEmail: env.SUPPORT_RECEIVER_EMAIL,
 
   // Feature flags
   enableWorkers: env.ENABLE_WORKERS,

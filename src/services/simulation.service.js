@@ -1,4 +1,5 @@
-const { Simulation, ProjectTemplate, User } = require("../models");
+const { Simulation, User } = require("../models");
+const Project = require("../../models/Project");
 const { enqueueAgentJob } = require("./queue.service");
 const { AppError } = require("../utils/errors");
 const { emitToSimulation } = require("../socket");
@@ -51,42 +52,43 @@ async function createSimulation(userId, data) {
     return recentExisting;
   }
 
-  // Get template if ID provided
+  // Get template if ID provided (optional)
   let templateSnapshot = null;
   if (projectTemplateId) {
-    const template = await ProjectTemplate.findById(projectTemplateId);
-    if (!template || !template.isActive) {
-      throw new AppError("Template not found", 404);
+    try {
+      const template = await Project.findById(projectTemplateId);
+      if (template) {
+        // Combine requiredSkills and technologies (supporting legacy structure)
+        const combinedSkills = Array.from(
+          new Set([
+            ...(Array.isArray(template.requiredSkills)
+              ? template.requiredSkills
+              : []),
+            ...(Array.isArray(template.technologies) ? template.technologies : []),
+          ])
+        );
+
+        // Parse duration to hours for more precision
+        const estimatedHours = template.duration
+          ? parseDurationToHours(template.duration)
+          : template.durationEstimateDays
+          ? parseDurationToHours(template.durationEstimateDays)
+          : null;
+
+        templateSnapshot = {
+          name: template.name || template.title,
+          shortDescription: template.shortDescription || template.description,
+          requiredSkills: combinedSkills,
+          expertiseLevel: template.expertiseLevel || template.difficulty,
+          durationEstimateDays: estimatedHours ? estimatedHours / 24 : null,
+          complexityScore: template.complexityScore || template.difficultyLevel,
+          version: template.version,
+        };
+      }
+    } catch (err) {
+      // Template not found - continue without template snapshot
+      logger.warn(`[SimService] Template ${projectTemplateId} not found, continuing without snapshot`);
     }
-
-    // Combine requiredSkills and technologies (supporting legacy structure)
-    const combinedSkills = Array.from(
-      new Set([
-        ...(Array.isArray(template.requiredSkills)
-          ? template.requiredSkills
-          : []),
-        ...(Array.isArray(template.technologies) ? template.technologies : []),
-      ])
-    );
-
-    // Parse duration to hours for more precision
-    const estimatedHours = template.duration
-      ? parseDurationToHours(template.duration)
-      : template.durationEstimateDays
-      ? template.durationEstimateDays * 24
-      : null;
-
-    templateSnapshot = {
-      name: template.name || template.title,
-      shortDescription: template.shortDescription || template.description,
-      requiredSkills: combinedSkills,
-      expertiseLevel: template.expertiseLevel || template.difficulty,
-      durationEstimateDays:
-        template.durationEstimateDays ||
-        (estimatedHours ? estimatedHours / 24 : null),
-      complexityScore: template.complexityScore || template.difficultyLevel,
-      version: template.version,
-    };
   }
 
   // Get user info for participants

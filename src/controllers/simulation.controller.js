@@ -1,7 +1,8 @@
 const simulationService = require("../services/simulation.service");
 const limitsService = require("../services/limits.service");
-const { ProjectTemplate } = require("../models");
+const Project = require("../../models/Project");
 const { successResponse, errorResponse } = require("../utils/response");
+const mongoose = require("mongoose");
 
 /**
  * Create a new simulation
@@ -18,20 +19,31 @@ async function createSimulation(req, res, next) {
       return res.status(403).json(errorResponse(canCreate.reason));
     }
 
-    // Check expertise level if template provided
+    // Determine expertise level for validation
+    let expertiseLevel = data.filters?.expertise || "intermediate";
+    
+    // Check expertise level if template provided (optional)
     if (data.projectTemplateId) {
-      const template = await ProjectTemplate.findById(data.projectTemplateId);
-      if (!template) {
-        return res.status(404).json(errorResponse("Template not found"));
+      // Validate MongoDB ObjectId format
+      if (mongoose.Types.ObjectId.isValid(data.projectTemplateId)) {
+        try {
+          const template = await Project.findById(data.projectTemplateId);
+          if (template && template.expertiseLevel) {
+            expertiseLevel = template.expertiseLevel;
+          }
+        } catch (err) {
+          // Template not found - continue with filters.expertise
+          console.log(`[Simulation] Template ${data.projectTemplateId} not found, using filters.expertise`);
+        }
+      } else {
+        console.log(`[Simulation] Invalid ObjectId format: ${data.projectTemplateId}, using filters.expertise`);
       }
+    }
 
-      const canUse = await limitsService.canUseExpertise(
-        userId,
-        template.expertiseLevel
-      );
-      if (!canUse.allowed) {
-        return res.status(403).json(errorResponse(canUse.reason));
-      }
+    // Validate expertise level access
+    const canUse = await limitsService.canUseExpertise(userId, expertiseLevel);
+    if (!canUse.allowed) {
+      return res.status(403).json(errorResponse(canUse.reason));
     }
 
     // Create simulation
