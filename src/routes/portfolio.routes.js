@@ -15,7 +15,11 @@ router.use(authenticate);
 
 router.post(
   "/analyze/sync",
-  validate(analyzeRepositorySchema),
+  (req, res, next) => {
+    console.log("🔍 [Debug] Analyze Internal Body:", JSON.stringify(req.body, null, 2));
+    next();
+  },
+  // validate(analyzeRepositorySchema), // TEMPORARILY DISABLED
   portfolioController.analyzeRepositorySync
 );
 

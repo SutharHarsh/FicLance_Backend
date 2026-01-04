@@ -80,17 +80,17 @@ const envSchema = Joi.object({
 
   // Beta Mode
   IS_BETA_MODE: Joi.boolean().default(false),
-  
+
   // Project Limits
-  MAX_ACTIVE_PROJECTS: Joi.number().integer().min(1).optional(),
-  
+  MAX_ACTIVE_PROJECTS: Joi.number().integer().min(1).default(3),
+
   // Email Configuration (Resend API - Production)
   RESEND_API_KEY: Joi.string().optional(),
   SUPPORT_SENDER_EMAIL: Joi.string().email().optional(),
   SUPPORT_RECEIVER_EMAIL: Joi.string().email().optional(),
-  
+
   // Feature flags
-  ENABLE_WORKERS: Joi.boolean().default(false),
+  ENABLE_WORKERS: Joi.boolean().default(true),
 }).unknown(true);
 
 // Validate environment variables

@@ -22,6 +22,7 @@ class ValidationMiddleware {
             .map((d) => `${d.path.join(".")}: ${d.message}`)
             .join(", ")
         );
+        console.error("[Validation Body]:", JSON.stringify(req.body, null, 2));
         const errors = error.details.map((detail) => ({
           field: detail.path.join("."),
           message: detail.message,

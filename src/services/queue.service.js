@@ -330,7 +330,34 @@ async function setupJobCompletionListener() {
 
   queueEventsInstance.on("failed", async ({ jobId, failedReason }) => {
     logger.error(`Job ${jobId} failed:`, failedReason);
-    // TODO: Extract simulationId from job data and emit error event
+    
+    try {
+      // Get the job to access its data (simulationId)
+      const queue = getAgentQueue();
+      const job = await queue.getJob(jobId);
+      
+      if (job && job.data && job.data.simulationId) {
+        const { simulationId } = job.data;
+        const { emitToSimulation } = require("../socket");
+
+        // Stop typing indicator
+        emitToSimulation(simulationId, "agent:typing", {
+          agentName: "Agent2",
+          isTyping: false,
+        });
+
+        // Emit error event to frontend
+        emitToSimulation(simulationId, "agent:error", {
+          message: "Agent failed to respond. Please try again.",
+          details: failedReason,
+          jobId
+        });
+        
+        logger.info(`Emitted agent:error for failed job ${jobId} in simulation ${simulationId}`);
+      }
+    } catch (error) {
+      logger.error(`Error handling failed job ${jobId}:`, error.message);
+    }
   });
 
   logger.info("Job completion listener set up successfully");

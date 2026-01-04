@@ -33,7 +33,7 @@ async function startServer() {
       logger.error("Redis error:", redisError.message);
       redisConnected = false;
     }
-    
+
     // Create HTTP server
     server = http.createServer(app);
 
@@ -59,15 +59,16 @@ async function startServer() {
       logger.warn("   → Agent processing will not work in dev mode unless enabled");
     }
 
-    // Start workers when allowed and Redis is connected
-    if ((config.env === "production" || config.enableWorkers) && redisConnected) {
+    // Start workers when Redis is connected (Always in dev/prod unless explicitly disabled)
+    // We defaults ENABLE_WORKERS to true now, but this double check ensures it runs.
+    if (redisConnected && (config.enableWorkers || config.env === "development")) {
       try {
-        logger.info("Production mode: Starting workers in-process...");
+        logger.info("Starting background workers...");
         const { startWorkers } = require("./worker");
         await startWorkers();
       } catch (workerError) {
         logger.error(
-          "Failed to start workers in production mode:",
+          "Failed to start workers:",
           workerError
         );
       }

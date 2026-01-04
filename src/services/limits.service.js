@@ -9,11 +9,8 @@ const { isBetaMode } = require("../utils/betaMode");
  * @returns {object} { allowed: boolean, reason?: string, remaining?: number }
  */
 async function canCreateProject(userId) {
-  const config = require("../config/env");
-
   // 1. Determine Max Projects Limit
-  // STRICT PRIORITY: ENV MAX_ACTIVE_PROJECTS > Plan Limits > Beta Mode
-  // This ensures the 3-project limit is enforced even in Beta Mode
+  const config = require("../config/env");
   let maxProjects = config.maxActiveProjects;
 
   const user = await User.findById(userId);
@@ -21,70 +18,46 @@ async function canCreateProject(userId) {
     throw new AppError("User not found", 404);
   }
 
+  console.log(`[LimitCheck] Config Value: ${maxProjects}`);
+
   // Only check plan limit if ENV limit not set
   if (maxProjects === undefined || maxProjects === null) {
     const plan = getPlan(user.subscription.plan);
     maxProjects = plan.maxProjects;
+    console.log(`[LimitCheck] Used Plan Limit: ${maxProjects}`);
   }
 
   // Only allow unlimited if both ENV and plan limits are not set AND beta mode is on
   if (maxProjects === undefined || maxProjects === null) {
     if (isBetaMode()) {
       maxProjects = null; // Unlimited
+      console.log(`[LimitCheck] Used Beta Unlimited`);
     }
   }
 
   // 2. Count "Active" Simulations
-  // A project is Active if:
-  // - State is created/requirements_sent/in_progress
-  // - Completion < 80%
-  // - Deadline has NOT passed
-  const potentiallyActiveSims = await Simulation.find({
+  // A project is Active if it's in an active state and not 100% complete
+  const activeSims = await Simulation.find({
     userId,
     state: { $in: ["created", "requirements_sent", "in_progress"] },
     $or: [
       { "meta.completionPercentage": { $exists: false } },
-      { "meta.completionPercentage": { $lt: 80 } },
+      { "meta.completionPercentage": { $lt: 100 } },
     ],
   });
 
-  let activeCount = 0;
-  const now = new Date();
+  let activeCount = activeSims.length;
 
-  for (const sim of potentiallyActiveSims) {
-    let isActive = true;
-
-    // Deadline check for ALL states (not just in_progress)
-    // Check both startedAt and createdAt as fallback
-    const startDate = sim.startedAt || sim.createdAt;
-    const durationDays = sim.templateSnapshot?.durationEstimateDays || 
-                         sim.filters?.durationDays;
-    
-    if (startDate && durationDays) {
-      const deadline = new Date(startDate);
-      deadline.setDate(deadline.getDate() + durationDays);
-
-      if (now > deadline) {
-        isActive = false; // Deadline passed - doesn't count as active
-      }
-    }
-
-    if (isActive) {
-      activeCount++;
-    }
-  }
-
-  // Logging for production/dev visibility
+  // Logging
   console.log(
-    `[LimitCheck] User: ${user.email} | Active: ${activeCount} | Limit: ${
-      maxProjects || "Unlimited"
+    `[LimitCheck] User: ${user.email} | Active: ${activeCount} | Limit: ${maxProjects !== null ? maxProjects : "Unlimited"
     }`
   );
 
   if (maxProjects !== null && activeCount >= maxProjects) {
     return {
       allowed: false,
-      reason: `You have ${activeCount} active projects. Complete existing projects or wait for their deadlines to pass.`,
+      reason: `You have ${activeCount} active projects. Limit is ${maxProjects}. Complete an existing project before creating a new one.`,
     };
   }
 

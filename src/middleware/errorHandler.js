@@ -78,6 +78,8 @@ class ErrorHandler {
         message: e.message,
       }));
 
+      console.error("[Mongoose Validation Error]:", JSON.stringify(errors, null, 2));
+
       return res.status(422).json(
         errorResponse(
           "Validation failed",

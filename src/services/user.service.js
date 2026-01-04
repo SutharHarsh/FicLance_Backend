@@ -57,7 +57,15 @@ async function updateUser(userId, updates) {
         // and apply them individually to the user.profile subdocument.
         // This preserves fields that are NOT in the payload (e.g. bio, availability).
         for (const profileKey in updates[key]) {
-          user.profile[profileKey] = updates[key][profileKey];
+          // If updating portfolio, merge it to prevent losing fields like experiences/manualProjects
+          if (profileKey === 'portfolio' && typeof updates[key][profileKey] === 'object' && updates[key][profileKey] !== null) {
+            user.profile[profileKey] = {
+              ...(user.profile[profileKey] || {}),
+              ...updates[key][profileKey]
+            };
+          } else {
+            user.profile[profileKey] = updates[key][profileKey];
+          }
         }
       } else {
         // Normal logic for non-nested fields (name, about, etc.)
