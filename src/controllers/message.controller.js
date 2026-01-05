@@ -1,6 +1,8 @@
 const messageService = require("../services/message.service");
 const { successResponse, errorResponse } = require("../utils/response");
 const logger = require("../config/logger");
+const { User } = require("../models");
+const { AppError } = require("../utils/errors");
 
 /**
  * List messages for a simulation
@@ -49,10 +51,25 @@ async function createMessage(req, res, next) {
       if (isSystemMessage) {
         senderData = { type: "system", name: "System" };
       } else {
+        // Ensure req.user exists
+        if (!req.user || !req.user.userId) {
+          logger.error("Missing user authentication data in createMessage", {
+            hasUser: !!req.user,
+            user: req.user,
+          });
+          throw new AppError("User authentication required", 401);
+        }
+        
+        // Fetch user data to get display name
+        const user = await User.findById(req.user.userId);
+        if (!user) {
+          throw new AppError("User not found", 404);
+        }
+        
         senderData = {
           type: "user",
           id: req.user.userId,
-          displayName: req.user.displayName || req.user.name,
+          displayName: user.name || user.email || "User",
         };
       }
     }
