@@ -1,19 +1,24 @@
-require("dotenv").config(); // 👈 MUST be line 1
+require("dotenv").config(); // MUST be first
+
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+
 const { errorHandler } = require("./middleware/errorHandler");
 const { requestLogger, correlationId } = require("./middleware/logger");
 const config = require("./config/env");
-const logger = require("./config/logger");
 
 const app = express();
 
-// Trace ID middleware
+/* ======================================================
+   1️⃣ Correlation ID
+====================================================== */
 app.use(correlationId);
 
-// Security middleware
+/* ======================================================
+   2️⃣ Helmet (CSP FIXED)
+====================================================== */
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -24,8 +29,9 @@ app.use(
         imgSrc: ["'self'", "data:", "https:"],
         connectSrc: [
           "'self'",
-          "http://localhost:8080",
-          "http://127.0.0.1:8080",
+          "http://localhost:3000",
+          "https://fic-lance-frontend-e189.vercel.app",
+          "https://ficlance-backend.onrender.com",
         ],
       },
     },
@@ -34,57 +40,22 @@ app.use(
   })
 );
 
-// CORS configuration - Allow both localhost and production URLs
+/* ======================================================
+   3️⃣ SINGLE, CORRECT CORS CONFIG (THIS IS THE KEY)
+====================================================== */
 const allowedOrigins = [
-  "https://fic-lance-frontend-e189.vercel.app", // Production frontend - FIRST
-  config.corsOrigin,
+  "https://fic-lance-frontend-e189.vercel.app",
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ];
 
-logger.info("CORS Configuration:", {
-  configuredOrigin: config.corsOrigin,
-  allowedOrigins,
-  nodeEnv: config.env,
-});
-
-// Simple CORS middleware
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin || "*");
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header(
-      "Access-Control-Allow-Methods",
-      "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-    );
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, X-Requested-With, Accept, X-Correlation-ID, X-Refresh-Token"
-    );
-    res.header("Access-Control-Expose-Headers", "Set-Cookie, X-Correlation-ID");
-  }
-  
-  // Handle preflight
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-  
-  next();
-});
-
-// Also apply cors package as backup
 app.use(
   cors({
-    origin: (origin, callback) => {
-      logger.debug(`CORS request from origin: ${origin || 'no-origin'}`);
-      
+    origin(origin, callback) {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        logger.warn(`CORS blocked request from origin: ${origin}`);
-        callback(null, false);
+        callback(new Error("CORS not allowed"));
       }
     },
     credentials: true,
@@ -98,43 +69,55 @@ app.use(
       "X-Refresh-Token",
     ],
     exposedHeaders: ["Set-Cookie", "X-Correlation-ID"],
-    preflightContinue: false,
     optionsSuccessStatus: 204,
   })
 );
 
-// Manual preflight handler for extra insurance
+/* ======================================================
+   4️⃣ Explicit Preflight (IMPORTANT)
+====================================================== */
 app.options("*", cors());
 
-// Body parsing middleware
+/* ======================================================
+   5️⃣ Body & Cookies
+====================================================== */
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
-// Request logging
+/* ======================================================
+   6️⃣ Logging
+====================================================== */
 app.use(requestLogger);
 
-// Initialize Passport for OAuth
+/* ======================================================
+   7️⃣ Passport
+====================================================== */
 const passport = require("passport");
 const { initializePassport } = require("./config/passport");
 initializePassport();
 app.use(passport.initialize());
 
-// API routes
+/* ======================================================
+   8️⃣ Routes (API PREFIX)
+====================================================== */
 const routes = require("./routes");
 app.use(config.apiPrefix, routes);
 
-// Root endpoint
+/* ======================================================
+   9️⃣ Root
+====================================================== */
 app.get("/", (req, res) => {
   res.json({
     success: true,
     message: "FicLance Backend API",
     version: "1.0.0",
-    documentation: `${config.apiPrefix}/docs`,
   });
 });
 
-// 404 handler
+/* ======================================================
+   🔟 404
+====================================================== */
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -143,7 +126,9 @@ app.use((req, res) => {
   });
 });
 
-// Global error handler (must be last)
+/* ======================================================
+   11️⃣ Global Error
+====================================================== */
 app.use(errorHandler);
 
 module.exports = app;
