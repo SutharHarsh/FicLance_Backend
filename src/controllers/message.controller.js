@@ -61,8 +61,32 @@ async function createMessage(req, res, next) {
         }
         
         // Fetch user data to get display name
-        const user = await User.findById(req.user.userId);
+        let user;
+        try {
+          // Ensure userId is a valid MongoDB ObjectId
+          const mongoose = require('mongoose');
+          const userId = mongoose.Types.ObjectId.isValid(req.user.userId) 
+            ? req.user.userId 
+            : null;
+          
+          if (!userId) {
+            throw new Error(`Invalid user ID format: ${req.user.userId}`);
+          }
+          
+          user = await User.findById(userId);
+        } catch (dbError) {
+          logger.error("Database error fetching user in createMessage", {
+            userId: req.user.userId,
+            error: dbError.message,
+            stack: dbError.stack
+          });
+          throw new AppError("Failed to fetch user data", 500);
+        }
+        
         if (!user) {
+          logger.error("User not found in createMessage", {
+            userId: req.user.userId
+          });
           throw new AppError("User not found", 404);
         }
         
