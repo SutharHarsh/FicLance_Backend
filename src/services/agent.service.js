@@ -68,7 +68,7 @@ class AgentService {
         Question: data.message,
       };
 
-      const response = await this.client.post("api/v1/messages", payload);
+      const response = await this.client.post("/messages", payload);
       return response.data;
     } catch (error) {
       this.handleError(error, "Agent 2 (Chat)");
