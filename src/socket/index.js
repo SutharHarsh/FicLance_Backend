@@ -20,6 +20,10 @@ function initializeSocketIO(httpServer) {
       methods: ["GET", "POST"],
     },
     transports: ["websocket", "polling"],
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    connectTimeout: 45000,
+    allowEIO3: true,
   });
 
   // Set up Redis adapter for scaling

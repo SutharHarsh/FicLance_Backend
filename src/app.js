@@ -34,11 +34,12 @@ app.use(
   })
 );
 
-// CORS configuration - Allow both localhost and 127.0.0.1
+// CORS configuration - Allow both localhost and production URLs
 const allowedOrigins = [
   config.corsOrigin,
   "http://localhost:3000",
   "http://127.0.0.1:3000",
+  "https://fic-lance-frontend-e189.vercel.app", // Production frontend
 ];
 
 app.use(
