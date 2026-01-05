@@ -14,6 +14,9 @@ const badgeController = require('../controllers/badge.controller');
 // All user routes require authentication
 router.use(authenticate);
 
+// Explicit OPTIONS handler for /me (allows preflight before auth)
+router.options('/me', (req, res) => res.sendStatus(204));
+
 router.get('/me', userController.getMe);
 
 router.patch(

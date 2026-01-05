@@ -4,8 +4,15 @@ const config = require('../config/env');
 
 /**
  * Authentication middleware - verify JWT
+ * CRITICAL: Must allow OPTIONS preflight to pass through for CORS
  */
 async function authenticate(req, res, next) {
+  // Allow OPTIONS preflight requests to pass through without authentication
+  // This is REQUIRED for CORS to work properly in browsers
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   try {
     const authHeader = req.headers.authorization;
     
