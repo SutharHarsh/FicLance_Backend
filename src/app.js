@@ -42,13 +42,23 @@ const allowedOrigins = [
   "https://fic-lance-frontend-e189.vercel.app", // Production frontend
 ];
 
+logger.info("CORS Configuration:", {
+  configuredOrigin: config.corsOrigin,
+  allowedOrigins,
+});
+
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Log all CORS requests for debugging
+      logger.debug(`CORS request from origin: ${origin || 'no-origin'}`);
+      
+      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        logger.warn(`CORS blocked request from origin: ${origin}`);
+        callback(null, false); // Don't throw error, just block
       }
     },
     credentials: true,
@@ -62,8 +72,13 @@ app.use(
       "X-Refresh-Token",
     ],
     exposedHeaders: ["Set-Cookie", "X-Correlation-ID"],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   })
 );
+
+// Manual preflight handler for extra insurance
+app.options("*", cors());
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
