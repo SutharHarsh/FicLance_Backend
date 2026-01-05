@@ -67,6 +67,9 @@ router.get(
   authController.oauthGithubCallback
 );
 
+// Explicit OPTIONS for refresh (must allow unauthenticated preflight)
+router.options("/refresh", (req, res) => res.sendStatus(204));
+
 router.post("/refresh", authController.refresh);
 
 router.post("/logout", authController.logout);
