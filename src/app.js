@@ -36,29 +36,55 @@ app.use(
 
 // CORS configuration - Allow both localhost and production URLs
 const allowedOrigins = [
+  "https://fic-lance-frontend-e189.vercel.app", // Production frontend - FIRST
   config.corsOrigin,
   "http://localhost:3000",
   "http://127.0.0.1:3000",
-  "https://fic-lance-frontend-e189.vercel.app", // Production frontend
 ];
 
 logger.info("CORS Configuration:", {
   configuredOrigin: config.corsOrigin,
   allowedOrigins,
+  nodeEnv: config.env,
 });
 
+// Simple CORS middleware
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  if (!origin || allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin || "*");
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    );
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Requested-With, Accept, X-Correlation-ID, X-Refresh-Token"
+    );
+    res.header("Access-Control-Expose-Headers", "Set-Cookie, X-Correlation-ID");
+  }
+  
+  // Handle preflight
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+  
+  next();
+});
+
+// Also apply cors package as backup
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Log all CORS requests for debugging
       logger.debug(`CORS request from origin: ${origin || 'no-origin'}`);
       
-      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         logger.warn(`CORS blocked request from origin: ${origin}`);
-        callback(null, false); // Don't throw error, just block
+        callback(null, false);
       }
     },
     credentials: true,
