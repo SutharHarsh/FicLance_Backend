@@ -42,22 +42,17 @@ app.use(
 
 /* ======================================================
    3️⃣ SINGLE, CORRECT CORS CONFIG (THIS IS THE KEY)
+   - Production origin MUST match Vercel URL exactly
+   - credentials: true required for cookies
+   - PATCH method explicitly allowed
 ====================================================== */
-const allowedOrigins = [
-  "https://fic-lance-frontend-e189.vercel.app",
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-];
+const corsOrigin = config.nodeEnv === 'production'
+  ? "https://fic-lance-frontend-e189.vercel.app"
+  : ["http://localhost:3000", "http://127.0.0.1:3000"];
 
 app.use(
   cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("CORS not allowed"));
-      }
-    },
+    origin: corsOrigin,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [

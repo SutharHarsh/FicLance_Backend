@@ -11,11 +11,14 @@ const {
 
 const badgeController = require('../controllers/badge.controller');
 
+// CRITICAL: OPTIONS handlers MUST be defined BEFORE authenticate middleware
+// This allows CORS preflight requests to pass through without authentication
+router.options('/me', (req, res) => res.sendStatus(204));
+router.options('/me/avatar/presign', (req, res) => res.sendStatus(204));
+router.options('/me/avatar/complete', (req, res) => res.sendStatus(204));
+
 // All user routes require authentication
 router.use(authenticate);
-
-// Explicit OPTIONS handler for /me (allows preflight before auth)
-router.options('/me', (req, res) => res.sendStatus(204));
 
 router.get('/me', userController.getMe);
 
