@@ -44,40 +44,31 @@ app.use(
    3️⃣ SINGLE, CORRECT CORS CONFIG (THIS IS THE KEY)
    - Production origin MUST match Vercel URL exactly
    - credentials: true required for cookies
-   - PATCH method explicitly allowed
+   - PATCH/PUT allowed
 ====================================================== */
-const corsOrigin =
-  config.nodeEnv === "production"
-    ? "https://fic-lance-frontend-e189.vercel.app"
-    : ["*"];
+const allowedOrigins = [
+  "https://fic-lance-frontend-e189.vercel.app",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
 
 const corsOptions = {
-  origin: corsOrigin,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // mobile apps / curl
+    const isAllowed =
+      allowedOrigins.includes(origin) || origin.endsWith(".vercel.app");
+    if (isAllowed) return callback(null, true);
+    console.warn("❌ CORS blocked origin:", origin);
+    return callback(new Error("Not allowed by CORS"));
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    // "X-Requested-With",
-    // "Accept",
-    // "X-Correlation-ID",
-    // "X-Refresh-Token",
-  ],
-  // exposedHeaders: ["Set-Cookie", "X-Correlation-ID"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   optionsSuccessStatus: 204,
-  // preflightContinue: false,
 };
 
 app.use(cors(corsOptions));
-
-/* ======================================================
-   4️⃣ Explicit Preflight (IMPORTANT) - Using same config
-====================================================== */
-app.options("*");
-
-/* ======================================================
-   5️⃣ Body & Cookies
-====================================================== */
+app.options("*", cors(corsOptions));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
