@@ -53,7 +53,7 @@ const corsOrigin = config.nodeEnv === 'production'
 app.use(
   cors({
     origin: corsOrigin,
-    credentials: true,
+    credentials: false,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
