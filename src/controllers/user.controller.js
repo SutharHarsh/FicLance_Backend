@@ -29,7 +29,12 @@ async function updateMe(req, res, next) {
     const updates = req.body;
 
     console.log("=== CONTROLLER UPDATE ME ===");
+    console.log("USER ID:", userId);
     console.log("FULL REQ.BODY:", JSON.stringify(req.body, null, 2)); // <--- SHOW ME EVERYTHING
+    
+    if (updates.profile) {
+      console.log("📦 Profile object:", JSON.stringify(updates.profile, null, 2));
+    }
     if (updates.profile && updates.profile.portfolio) {
       console.log("Req.body.profile.portfolio:", JSON.stringify(updates.profile.portfolio, null, 2));
     } else {
@@ -51,8 +56,11 @@ async function updateMe(req, res, next) {
 
     const user = await userService.updateUser(userId, updates);
 
+    console.log("✅ RESPONSE BEING SENT BACK:", JSON.stringify(user, null, 2).substring(0, 500));
+    
     return res.json(successResponse(user, "Profile updated"));
   } catch (error) {
+    console.error("❌ UPDATE ERROR:", error);
     next(error);
   }
 }

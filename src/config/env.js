@@ -20,7 +20,8 @@ const envSchema = Joi.object({
   // Redis
   REDIS_URL: Joi.string()
     .uri({ scheme: ["redis", "rediss"] })
-    .required(),
+    .allow("", null)
+    .optional(),
 
   REDIS_PASSWORD: Joi.string().allow("").optional(),
 

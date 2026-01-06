@@ -79,16 +79,23 @@ async function updateUser(userId, updates) {
   // ensuring persistence.
   user.markModified('profile');
 
-  // 4. Save the document
-  await user.save();
+  // 4. Save the document with better error handling
+  try {
+    const savedUser = await user.save();
+    console.log("✅ USER SAVED SUCCESSFULLY");
+    console.log("SAVED USER PROFILE:", JSON.stringify(savedUser.profile, null, 2));
+    
+    if (!savedUser) {
+      throw new AppError("User not found after save", 404);
+    }
 
-  if (!user) {
-    throw new AppError("User not found", 404);
+    logger.info(`User updated: ${userId}`);
+    return savedUser.toSafeObject();
+  } catch (error) {
+    console.error("❌ SAVE ERROR:", error.message);
+    console.error("ERROR DETAILS:", error);
+    throw error;
   }
-
-  logger.info(`User updated: ${userId}`);
-
-  return user.toSafeObject();
 }
 
 /**

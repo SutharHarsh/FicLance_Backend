@@ -26,11 +26,21 @@ function initializeSocketIO(httpServer) {
     allowEIO3: true,
   });
 
-  // Set up Redis adapter for scaling
+  // Set up Redis adapter for scaling (only if Redis is available)
   const pubClient = getRedisConnection();
-  const subClient = pubClient.duplicate();
-
-  io.adapter(createAdapter(pubClient, subClient));
+  
+  if (pubClient) {
+    try {
+      const subClient = pubClient.duplicate();
+      io.adapter(createAdapter(pubClient, subClient));
+      logger.info("Socket.IO initialized with Redis adapter");
+    } catch (error) {
+      logger.warn("Redis client not initialized. Running without Redis.");
+      logger.error("Redis adapter setup failed:", error);
+    }
+  } else {
+    logger.warn("Redis client not initialized. Running without Redis.");
+  }
 
   // Authentication middleware
   io.use(async (socket, next) => {

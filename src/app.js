@@ -46,32 +46,34 @@ app.use(
    - credentials: true required for cookies
    - PATCH method explicitly allowed
 ====================================================== */
-const corsOrigin = config.nodeEnv === 'production'
-  ? "https://fic-lance-frontend-e189.vercel.app"
-  : ["http://localhost:3000", "http://127.0.0.1:3000"];
+const corsOrigin =
+  config.nodeEnv === "production"
+    ? "https://fic-lance-frontend-e189.vercel.app"
+    : ["*"];
 
-app.use(
-  cors({
-    origin: corsOrigin,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "Accept",
-      "X-Correlation-ID",
-      "X-Refresh-Token",
-    ],
-    exposedHeaders: ["Set-Cookie", "X-Correlation-ID"],
-    optionsSuccessStatus: 204,
-  })
-);
+const corsOptions = {
+  origin: corsOrigin,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    // "X-Requested-With",
+    // "Accept",
+    // "X-Correlation-ID",
+    // "X-Refresh-Token",
+  ],
+  // exposedHeaders: ["Set-Cookie", "X-Correlation-ID"],
+  optionsSuccessStatus: 204,
+  // preflightContinue: false,
+};
+
+app.use(cors(corsOptions));
 
 /* ======================================================
-   4️⃣ Explicit Preflight (IMPORTANT)
+   4️⃣ Explicit Preflight (IMPORTANT) - Using same config
 ====================================================== */
-app.options("*", cors());
+app.options("*");
 
 /* ======================================================
    5️⃣ Body & Cookies

@@ -1,45 +1,56 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const userController = require('../controllers/user.controller');
-const { authenticate } = require('../middleware/auth');
-const { validate } = require('../middleware/validation');
+
+const userController = require("../controllers/user.controller");
+const badgeController = require("../controllers/badge.controller");
+
+const { authenticate } = require("../middleware/auth");
+const { validate } = require("../middleware/validation");
+
 const {
   updateUserSchema,
   presignAvatarSchema,
   completeAvatarSchema,
-} = require('../validation/user.validation');
+} = require("../validation/user.validation");
 
-const badgeController = require('../controllers/badge.controller');
-
-// CRITICAL: OPTIONS handlers MUST be defined BEFORE authenticate middleware
-// This allows CORS preflight requests to pass through without authentication
-router.options('/me', (req, res) => res.sendStatus(204));
-router.options('/me/avatar/presign', (req, res) => res.sendStatus(204));
-router.options('/me/avatar/complete', (req, res) => res.sendStatus(204));
-
-// All user routes require authentication
+/* ======================================================
+   🔐 AUTHENTICATION (ALL USER ROUTES PROTECTED)
+====================================================== */
 router.use(authenticate);
 
-router.get('/me', userController.getMe);
+/* ======================================================
+   👤 USER PROFILE
+====================================================== */
 
-router.patch(
-  '/me',
-  validate(updateUserSchema),
-  userController.updateMe
-);
+// Get current user
+router.get("/me", userController.getMe);
 
-router.delete('/me', userController.deleteMe);
+// Update current user
+router.put("/me", validate(updateUserSchema), userController.updateMe);
 
-router.get('/badges', badgeController.getMyBadges);
+// Delete user
+router.delete("/me", userController.deleteMe);
 
+/* ======================================================
+   🏅 BADGES
+====================================================== */
+
+router.get("/badges", badgeController.getMyBadges);
+
+/* ======================================================
+   🖼️ AVATAR UPLOAD FLOW
+====================================================== */
+
+// Step 1: Presign upload
 router.post(
-  '/me/avatar/presign',
+  "/me/avatar/presign",
   validate(presignAvatarSchema),
   userController.presignAvatar
 );
 
+// Step 2: Confirm upload
 router.post(
-  '/me/avatar/complete',
+  "/me/avatar/complete",
   validate(completeAvatarSchema),
   userController.completeAvatar
 );
