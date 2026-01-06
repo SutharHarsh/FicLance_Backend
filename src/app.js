@@ -48,6 +48,7 @@ app.use(
 ====================================================== */
 const allowedOrigins = [
   "https://fic-lance-frontend-e189.vercel.app",
+  "https://www.ficlance.com",
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ];
