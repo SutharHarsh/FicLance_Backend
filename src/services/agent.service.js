@@ -22,7 +22,9 @@ class AgentService {
     // Log requests
     this.client.interceptors.request.use((request) => {
       logger.info(
-        `Agent Service Request: ${request.method.toUpperCase()} ${request.baseURL}${request.url}`
+        `Agent Service Request: ${request.method.toUpperCase()} ${
+          request.baseURL
+        }${request.url}`
       );
       return request;
     });
@@ -66,6 +68,7 @@ class AgentService {
       const payload = {
         SimulationId: data.simulationId,
         Question: data.message,
+        Context: data.context || null,
       };
 
       const response = await this.client.post("/messages", payload);
@@ -86,6 +89,7 @@ class AgentService {
       const payload = {
         RepoURL: data.repoUrl,
         SimulationId: data.simulationId,
+        Context: data.context || null,
       };
 
       const response = await this.client.post("/feedback", payload);

@@ -73,6 +73,24 @@ async function analyzeRepository(
         ...(simulationId ? { simulationId } : {}),
       });
 
+      if (!isQueueActive()) {
+        logger.warn(
+          `Redis unavailable - attempting synchronous fallback for Repo Re-analysis`
+        );
+        const sim = await Simulation.findById(
+          simulationId || portfolio.simulationId
+        );
+        const context = sim?.templateSnapshot?.requirements || null;
+        return analyzeRepositorySync(
+          userId,
+          portfolio.repoUrl,
+          portfolio.branch,
+          portfolio.commitHash,
+          simulationId || portfolio.simulationId,
+          context
+        );
+      }
+
       await enqueueRepoAnalysis({
         portfolioId: portfolio._id.toString(),
         repoUrl: portfolio.repoUrl,
@@ -97,6 +115,24 @@ async function analyzeRepository(
         ...(simulationId ? { simulationId } : {}),
       });
 
+      if (!isQueueActive()) {
+        logger.warn(
+          `Redis unavailable - attempting synchronous fallback for Repo Error Retry`
+        );
+        const sim = await Simulation.findById(
+          simulationId || portfolio.simulationId
+        );
+        const context = sim?.templateSnapshot?.requirements || null;
+        return analyzeRepositorySync(
+          userId,
+          portfolio.repoUrl,
+          portfolio.branch,
+          portfolio.commitHash,
+          simulationId || portfolio.simulationId,
+          context
+        );
+      }
+
       await enqueueRepoAnalysis({
         portfolioId: portfolio._id.toString(),
         repoUrl: portfolio.repoUrl,
@@ -106,6 +142,25 @@ async function analyzeRepository(
 
       return { ...portfolio.toObject(), status: "queued" };
     }
+  }
+
+  // Check if queue is active
+  const { isQueueActive } = require("./queue.service");
+  if (!isQueueActive()) {
+    logger.warn(
+      `Redis unavailable - attempting synchronous fallback for Repository Analysis`
+    );
+    // Pass existing portfolio context to sync analyzer
+    const sim = await Simulation.findById(simulationId);
+    const context = sim?.templateSnapshot?.requirements || null;
+    return analyzeRepositorySync(
+      userId,
+      repoUrl,
+      branch,
+      commitHash,
+      simulationId,
+      context
+    );
   }
 
   // New insert: enqueue analysis job
@@ -265,7 +320,8 @@ async function analyzeRepositorySync(
   repoUrl,
   branch = "main",
   commitHash = null,
-  simulationId = null
+  simulationId = null,
+  context = null // 👈 Add context parameter
 ) {
   // 1. Create/Get Portfolio Record WITHOUT enqueueing (different from async flow)
   const normalizedRepo = normalizeRepoUrl(repoUrl);
@@ -349,6 +405,7 @@ async function analyzeRepositorySync(
     const analysis = await agentService.analyzeRepo({
       repoUrl,
       simulationId: effectiveSimulationId,
+      context: context, // 👈 Pass context here
     });
     logger.info(
       `[Sync] Agent returned score: ${analysis.score || analysis.overallScore}`
@@ -415,7 +472,9 @@ async function analyzeRepositorySync(
               }
               if (sim.state !== "completed") {
                 await sim.transitionState("completed");
-                logger.info(`Simulation ${effectiveSimulationId} auto-transitioned to completed`);
+                logger.info(
+                  `Simulation ${effectiveSimulationId} auto-transitioned to completed`
+                );
               }
             }
           }

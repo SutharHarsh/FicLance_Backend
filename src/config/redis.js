@@ -19,23 +19,38 @@ class RedisClient {
       }
 
       // Check if Redis URL is local or remote
-      const isLocal = config.redisUrl.includes('localhost') || config.redisUrl.includes('127.0.0.1');
-      
+      const isLocal =
+        config.redisUrl.includes("localhost") ||
+        config.redisUrl.includes("127.0.0.1");
+      const isTLS = config.redisUrl.startsWith("rediss://");
+
+      logger.info(
+        `Attempting Redis connection to: ${
+          isLocal ? "Local Instance" : "Remote Instance"
+        } (${isTLS ? "TLS enabled" : "Plaintext"})`
+      );
+
       // Create Redis client (Upstash / TLS safe)
       this.client = new Redis(config.redisUrl, {
         maxRetriesPerRequest: null, // Required for BullMQ
         enableReadyCheck: false, // Disable to reduce requests
         enableOfflineQueue: true,
-        connectTimeout: isLocal ? 5000 : 10000,
-        maxLoadingRetryTime: isLocal ? 3000 : 5000,
+        connectTimeout: isLocal ? 3000 : 10000,
+        maxLoadingRetryTime: isLocal ? 2000 : 5000,
         lazyConnect: false,
-        tls: config.redisUrl.startsWith("rediss://") ? {} : undefined,
+        tls: isTLS
+          ? {
+              rejectUnauthorized: false, // Often needed for Upstash
+            }
+          : undefined,
         retryStrategy: (times) => {
-          if (times > 3) {
-            logger.error("Redis connection failed after 3 attempts. Running without Redis.");
-            return null; // Stop retrying after 3 attempts
+          if (times > 5) {
+            logger.error(
+              `Redis connection failed after ${times} attempts. Check your REDIS_URL environment variable.`
+            );
+            return null; // Stop retrying
           }
-          const delay = Math.min(times * 100, 3000);
+          const delay = Math.min(times * 500, 3000);
           return delay;
         },
       });
@@ -88,8 +103,7 @@ class RedisClient {
   }
 
   getClient() {
-    if (!this.client) {
-      logger.warn("Redis client not initialized. Running without Redis.");
+    if (!this.client || this.client.status !== "ready") {
       return null;
     }
     return this.client;
@@ -150,16 +164,16 @@ async function connectRedis() {
       const timeout = setTimeout(() => {
         reject(new Error("Redis connection timeout"));
       }, 5000);
-      
-      if (client.status === 'ready') {
+
+      if (client.status === "ready") {
         clearTimeout(timeout);
         resolve();
       } else {
-        client.once('ready', () => {
+        client.once("ready", () => {
           clearTimeout(timeout);
           resolve();
         });
-        client.once('error', (err) => {
+        client.once("error", (err) => {
           clearTimeout(timeout);
           reject(err);
         });

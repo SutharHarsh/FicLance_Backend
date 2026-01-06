@@ -14,6 +14,13 @@ let cleanupQueue;
 function initializeQueues() {
   const connection = getRedisConnection();
 
+  if (!connection) {
+    logger.warn(
+      "BullMQ initialization skipped: Redis connection not available"
+    );
+    return;
+  }
+
   const defaultJobOptions = {
     attempts: (config.worker && config.worker.attempts) || 3,
     backoff: {
@@ -100,6 +107,13 @@ function getCleanupQueue() {
 }
 
 /**
+ * Check if the queue system is active and connected
+ */
+function isQueueActive() {
+  return !!getRedisConnection() && !!agentQueue;
+}
+
+/**
  * Enqueue an agent job
  * @param {string} type - Job type ('requirements', 'message', 'feedback')
  * @param {object} payload - Job payload
@@ -110,16 +124,19 @@ async function enqueueAgentJob(type, payload, options = {}) {
   const queue = getAgentQueue();
 
   // Deduplication: Check for existing pending/active jobs for the same simulation
-  if (type === 'chat' && payload.simulationId) {
-    const waitingJobs = await queue.getJobs(['waiting', 'active']);
-    const duplicateJob = waitingJobs.find(job => 
-      job.data.type === 'chat' && 
-      job.data.simulationId === payload.simulationId &&
-      job.data.sequence === payload.sequence
+  if (type === "chat" && payload.simulationId) {
+    const waitingJobs = await queue.getJobs(["waiting", "active"]);
+    const duplicateJob = waitingJobs.find(
+      (job) =>
+        job.data.type === "chat" &&
+        job.data.simulationId === payload.simulationId &&
+        job.data.sequence === payload.sequence
     );
-    
+
     if (duplicateJob) {
-      logger.warn(`Skipping duplicate chat job for simulation ${payload.simulationId}, sequence ${payload.sequence}`);
+      logger.warn(
+        `Skipping duplicate chat job for simulation ${payload.simulationId}, sequence ${payload.sequence}`
+      );
       return duplicateJob;
     }
   }
@@ -158,14 +175,17 @@ async function enqueueRepoAnalysis(payload, options = {}) {
 
   // Deduplication: Check for existing pending/active jobs for the same portfolio
   if (payload.portfolioId) {
-    const waitingJobs = await queue.getJobs(['waiting', 'active']);
-    const duplicateJob = waitingJobs.find(job => 
-      job.data.type === 'feedback' && 
-      job.data.portfolioId === payload.portfolioId
+    const waitingJobs = await queue.getJobs(["waiting", "active"]);
+    const duplicateJob = waitingJobs.find(
+      (job) =>
+        job.data.type === "feedback" &&
+        job.data.portfolioId === payload.portfolioId
     );
-    
+
     if (duplicateJob) {
-      logger.warn(`Skipping duplicate feedback job for portfolio ${payload.portfolioId}`);
+      logger.warn(
+        `Skipping duplicate feedback job for portfolio ${payload.portfolioId}`
+      );
       return duplicateJob;
     }
   }
@@ -296,8 +316,9 @@ async function setupJobCompletionListener() {
   queueEventsInstance.on("completed", async ({ jobId, returnvalue }) => {
     try {
       // Parse return value
-      const result = typeof returnvalue === "string" ? JSON.parse(returnvalue) : returnvalue;
-      
+      const result =
+        typeof returnvalue === "string" ? JSON.parse(returnvalue) : returnvalue;
+
       if (!result || !result.success) {
         return;
       }
@@ -324,18 +345,21 @@ async function setupJobCompletionListener() {
         }
       }
     } catch (error) {
-      logger.error(`Error in job completion listener for ${jobId}:`, error.message);
+      logger.error(
+        `Error in job completion listener for ${jobId}:`,
+        error.message
+      );
     }
   });
 
   queueEventsInstance.on("failed", async ({ jobId, failedReason }) => {
     logger.error(`Job ${jobId} failed:`, failedReason);
-    
+
     try {
       // Get the job to access its data (simulationId)
       const queue = getAgentQueue();
       const job = await queue.getJob(jobId);
-      
+
       if (job && job.data && job.data.simulationId) {
         const { simulationId } = job.data;
         const { emitToSimulation } = require("../socket");
@@ -350,10 +374,12 @@ async function setupJobCompletionListener() {
         emitToSimulation(simulationId, "agent:error", {
           message: "Agent failed to respond. Please try again.",
           details: failedReason,
-          jobId
+          jobId,
         });
-        
-        logger.info(`Emitted agent:error for failed job ${jobId} in simulation ${simulationId}`);
+
+        logger.info(
+          `Emitted agent:error for failed job ${jobId} in simulation ${simulationId}`
+        );
       }
     } catch (error) {
       logger.error(`Error handling failed job ${jobId}:`, error.message);

@@ -177,14 +177,73 @@ async function createMessage(
       logger.error("Failed to emit agent:typing event:", error);
     }
 
-    await enqueueAgentJob("chat", {
-      simulationId: simulationId.toString(),
-      userMessage: content,
-      userId: sender.id.toString(),
-      sequence,
-    });
+    const queueActive = require("./queue.service").isQueueActive();
 
-    logger.info(`Enqueued Agent2 chat job for simulation: ${simulationId}`);
+    if (queueActive) {
+      await enqueueAgentJob("chat", {
+        simulationId: simulationId.toString(),
+        userMessage: content,
+        userId: sender.id.toString(),
+        sequence,
+      });
+      logger.info(`Enqueued Agent2 chat job for simulation: ${simulationId}`);
+    } else {
+      // ⚠️ SYNCHRONOUS FALLBACK: Call Agent 2 directly if Redis is down
+      logger.warn(
+        `Redis unavailable - attempting synchronous fallback for Agent 2 chat`
+      );
+
+      try {
+        const agentService = require("./agent.service");
+        // Get requirements from simulation snapshot (Agent 1 context)
+        const context = simulation.templateSnapshot?.requirements || null;
+
+        const agentResponse = await agentService.sendMessage({
+          simulationId: simulationId.toString(),
+          message: content,
+          context: context, // 👈 Pass context directly to bypass Redis
+        });
+
+        const agentName = "Agent2";
+        const agentContent =
+          agentResponse.response ||
+          agentResponse.message ||
+          JSON.stringify(agentResponse);
+
+        // Save Agent Message
+        const agentMsg = await Message.create({
+          simulationId,
+          sequence: await Message.getNextSequence(simulationId),
+          sender: { type: "agent", agentName },
+          content: agentContent,
+          contentType: "markdown",
+        });
+
+        // Update counts
+        await simulation.incrementMessageCount();
+
+        // Emit to socket
+        emitToSimulation(simulationId, "agent:typing", {
+          agentName,
+          isTyping: false,
+        });
+        emitToSimulation(simulationId, "message:created", agentMsg.toObject());
+
+        logger.info(
+          `Synchronous fallback successful for Agent 2: ${agentMsg._id}`
+        );
+      } catch (fallbackError) {
+        logger.error(`Synchronous fallback failed: ${fallbackError.message}`);
+        emitToSimulation(simulationId, "agent:typing", {
+          agentName: "Agent2",
+          isTyping: false,
+        });
+        emitToSimulation(simulationId, "agent:error", {
+          message: "Agent is currently offline. Please try again later.",
+          details: fallbackError.message,
+        });
+      }
+    }
   }
 
   return message.toObject();
