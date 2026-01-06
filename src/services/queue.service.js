@@ -417,4 +417,5 @@ module.exports = {
   closeQueues,
   setupJobCompletionListener,
   closeQueueEventsListener,
+  isQueueActive,
 };
