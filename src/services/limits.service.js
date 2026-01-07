@@ -35,22 +35,44 @@ async function canCreateProject(userId) {
     }
   }
 
-  // 2. Count "Active" Simulations
-  // A project is Active if it's in an active state and not 100% complete
-  const activeSims = await Simulation.find({
+  // 2. Get potentially active simulations
+  // A project is potentially active if it's in an active state and not 100% complete
+  const potentiallyActive = await Simulation.find({
     userId,
     state: { $in: ["created", "requirements_sent", "in_progress"] },
     $or: [
       { "meta.completionPercentage": { $exists: false } },
       { "meta.completionPercentage": { $lt: 100 } },
     ],
+  }).lean();
+
+  // 3. Filter out projects that have passed their deadline
+  const now = new Date();
+  const activeSims = potentiallyActive.filter((sim) => {
+    const startDate = sim.startedAt || sim.createdAt;
+    const durationDays =
+      sim.templateSnapshot?.durationEstimateDays || sim.filters?.durationDays;
+
+    if (startDate && durationDays) {
+      const deadline = new Date(startDate);
+      deadline.setDate(deadline.getDate() + durationDays);
+
+      // Only count if deadline hasn't passed
+      return now <= deadline;
+    }
+
+    // If no deadline info, count it as active
+    return true;
   });
 
-  let activeCount = activeSims.length;
+  const activeCount = activeSims.length;
 
   // Logging
   console.log(
-    `[LimitCheck] User: ${user.email} | Active: ${activeCount} | Limit: ${maxProjects !== null ? maxProjects : "Unlimited"
+    `[LimitCheck] User: ${user.email} | Potentially Active: ${
+      potentiallyActive.length
+    } | Active (after deadline filter): ${activeCount} | Limit: ${
+      maxProjects !== null ? maxProjects : "Unlimited"
     }`
   );
 

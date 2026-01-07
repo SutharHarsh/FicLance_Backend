@@ -15,35 +15,37 @@ async function getUserStats(userId) {
   }).lean();
 
   // Filter out projects that have passed their deadline
+  // Filter out projects that have passed their deadline
   const now = new Date();
   const activeSimulations = potentiallyActive.filter((sim) => {
     const startDate = sim.startedAt || sim.createdAt;
-    const durationDays = sim.templateSnapshot?.durationEstimateDays || 
-                         sim.filters?.durationDays;
-    
+    const durationDays =
+      sim.templateSnapshot?.durationEstimateDays || sim.filters?.durationDays;
+
     if (startDate && durationDays) {
       const deadline = new Date(startDate);
       deadline.setDate(deadline.getDate() + durationDays);
-      
+
       // Only count if deadline hasn't passed
       return now <= deadline;
     }
-    
+
     // If no deadline info, count it as active
     return true;
   }).length;
 
-  const [completedSimulations, totalSimulations, portfolioItems] = await Promise.all([
-    Simulation.countDocuments({
-      userId,
-      $or: [
-        { state: "completed" },
-        { "meta.completionPercentage": { $gte: 80 } },
-      ],
-    }),
-    Simulation.countDocuments({ userId }),
-    Portfolio.countDocuments({ userId, status: "done" }),
-  ]);
+  const [completedSimulations, totalSimulations, portfolioItems] =
+    await Promise.all([
+      Simulation.countDocuments({
+        userId,
+        $or: [
+          { state: "completed" },
+          { "meta.completionPercentage": { $gte: 80 } },
+        ],
+      }),
+      Simulation.countDocuments({ userId }),
+      Portfolio.countDocuments({ userId, status: "done" }),
+    ]);
 
   return {
     activeSimulations,
@@ -208,7 +210,16 @@ async function getProjects(userId, type) {
     };
   });
 
-  if (type === "deadlines") {
+  // Filter projects based on type and deadline status
+  if (type === "in-progress") {
+    // Only show projects with future deadlines (or no deadline info)
+    projects = projects.filter((p) => {
+      // If no deadline timestamp, include it (conservative approach)
+      if (!p.deadlineTimestamp) return true;
+      // Only include if deadline hasn't passed
+      return p.deadlineTimestamp > Date.now();
+    });
+  } else if (type === "deadlines") {
     projects = projects
       .filter((p) => p.deadlineTimestamp && p.deadlineTimestamp > Date.now()) // Only those with future deadlines
       .sort((a, b) => a.deadlineTimestamp - b.deadlineTimestamp); // Earliest deadline first
