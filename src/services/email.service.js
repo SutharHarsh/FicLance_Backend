@@ -451,6 +451,159 @@ class EmailService {
       };
     }
   }
+
+  /**
+   * Send Newsletter Subscription Notification
+   * Notifies admin when someone subscribes to newsletter
+   *
+   * @param {Object} data - Subscription data
+   * @param {string} data.email - Subscriber's email
+   * @param {Date} data.subscribedAt - Subscription timestamp
+   * @returns {Promise<Object>} Email send result
+   */
+  async sendNewsletterSubscription(data) {
+    if (!this.isConfigured) {
+      logger.warn('Email service not configured. Skipping newsletter notification.');
+      return { success: false, reason: 'Email service not configured' };
+    }
+
+    const referenceId = this.generateReferenceId('newsletter');
+    const timestamp = new Date(data.subscribedAt).toLocaleString('en-US', {
+      dateStyle: 'full',
+      timeStyle: 'long',
+    });
+
+    try {
+      const senderEmail = process.env.SUPPORT_SENDER_EMAIL || 'onboarding@resend.dev';
+
+      const result = await this.resend.emails.send({
+        from: `FicLance Newsletter <${senderEmail}>`,
+        to: this.supportReceiverEmail,
+        subject: `🎉 New Newsletter Subscription - ${data.email}`,
+        html: this._generateNewsletterSubscriptionHtml({
+          email: data.email,
+          timestamp,
+          referenceId,
+        }),
+        tags: [
+          {
+            name: 'category',
+            value: 'newsletter-subscription',
+          },
+        ],
+      });
+
+      logger.info('✅ Newsletter subscription notification sent successfully', {
+        email: data.email,
+        referenceId,
+        resendId: result.data?.id,
+      });
+
+      return {
+        success: true,
+        referenceId,
+        resendId: result.data?.id,
+      };
+    } catch (error) {
+      logger.error('❌ Failed to send newsletter subscription notification', {
+        error: error.message,
+        email: data.email,
+        referenceId,
+      });
+
+      return {
+        success: false,
+        error: error.message,
+        referenceId,
+      };
+    }
+  }
+
+  /**
+   * Generate HTML for newsletter subscription notification
+   * @private
+   */
+  _generateNewsletterSubscriptionHtml({ email, timestamp, referenceId }) {
+    const escapedEmail = this._escapeHtml(email);
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Newsletter Subscription</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  <!-- Header -->
+                  <tr>
+                    <td style="background: linear-gradient(135deg, #FF8C22 0%, #673AB7 100%); padding: 40px; text-align: center;">
+                      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">🎉 New Newsletter Subscriber!</h1>
+                    </td>
+                  </tr>
+
+                  <!-- Content -->
+                  <tr>
+                    <td style="padding: 40px;">
+                      <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
+                        Great news! Someone just subscribed to your FicLance newsletter.
+                      </p>
+
+                      <!-- Subscriber Info Box -->
+                      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8f9fa; border-radius: 8px; margin-bottom: 24px;">
+                        <tr>
+                          <td style="padding: 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                              <tr>
+                                <td style="padding: 8px 0;">
+                                  <strong style="color: #555555; font-size: 14px;">Email Address:</strong>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td style="padding: 8px 0;">
+                                  <span style="color: #FF8C22; font-size: 16px; font-weight: 600;">${escapedEmail}</span>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td style="padding: 8px 0; padding-top: 16px;">
+                                  <strong style="color: #555555; font-size: 14px;">Subscribed At:</strong>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td style="padding: 8px 0;">
+                                  <span style="color: #333333; font-size: 14px;">${this._escapeHtml(timestamp)}</span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 24px 0 0;">
+                        Add this email to your newsletter distribution list to keep them updated with the latest news, features, and content.
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="background-color: #f8f9fa; padding: 24px; text-align: center; border-top: 1px solid #e9ecef;">
+                      <p style="color: #999999; font-size: 12px; margin: 0 0 8px;">Reference ID: ${this._escapeHtml(referenceId)}</p>
+                      <p style="color: #999999; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} FicLance. All rights reserved.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+  }
 }
 
 // Export singleton instance

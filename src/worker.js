@@ -21,8 +21,17 @@ function createWorker(queueName, processor, options = {}) {
     connection: getRedisConnection(),
     concurrency: options.concurrency || (config.worker && config.worker.concurrency) || 5,
     lockDuration: 30000, // 30 seconds lock duration
-    stalledInterval: 60000, // Check for stalled jobs every 60s (reduced from default 30s)
-    maxStalledCount: 2, // Max times a job can be recovered from stalled state
+    stalledInterval: 300000, // Check for stalled jobs every 5 minutes (reduced from 60s to save Redis requests)
+    maxStalledCount: 1, // Max times a job can be recovered from stalled state
+    settings: {
+      lockDuration: 30000,
+      stalledInterval: 300000, // 5 minutes
+      maxStalledCount: 1,
+    },
+    limiter: {
+      max: 3, // Process max 3 jobs per minute
+      duration: 60000, // Per 60 seconds
+    },
     ...options,
   });
 

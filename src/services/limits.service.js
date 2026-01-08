@@ -35,9 +35,10 @@ async function canCreateProject(userId) {
     }
   }
 
-  // 2. Get potentially active simulations
-  // A project is potentially active if it's in an active state and not 100% complete
-  const potentiallyActive = await Simulation.find({
+  // 2. Get active simulations
+  // A project counts toward the limit if it's in an active state and not completed/cancelled
+  // We DO NOT filter by deadline for limit enforcement - only by state and completion
+  const activeSims = await Simulation.find({
     userId,
     state: { $in: ["created", "requirements_sent", "in_progress"] },
     $or: [
@@ -46,43 +47,29 @@ async function canCreateProject(userId) {
     ],
   }).lean();
 
-  // 3. Filter out projects that have passed their deadline
-  const now = new Date();
-  const activeSims = potentiallyActive.filter((sim) => {
-    const startDate = sim.startedAt || sim.createdAt;
-    const durationDays =
-      sim.templateSnapshot?.durationEstimateDays || sim.filters?.durationDays;
-
-    if (startDate && durationDays) {
-      const deadline = new Date(startDate);
-      deadline.setDate(deadline.getDate() + durationDays);
-
-      // Only count if deadline hasn't passed
-      return now <= deadline;
-    }
-
-    // If no deadline info, count it as active
-    return true;
-  });
-
   const activeCount = activeSims.length;
 
   // Logging
   console.log(
-    `[LimitCheck] User: ${user.email} | Potentially Active: ${
-      potentiallyActive.length
-    } | Active (after deadline filter): ${activeCount} | Limit: ${
+    `[LimitCheck] User: ${user.email} | Active Projects: ${activeCount} | Limit: ${
       maxProjects !== null ? maxProjects : "Unlimited"
     }`
   );
+  
+  console.log(`[LimitCheck] Beta Mode: ${isBetaMode()}`);
+  console.log(`[LimitCheck] Max Projects from ENV: ${config.maxActiveProjects}`);
+  console.log(`[LimitCheck] Checking: activeCount (${activeCount}) >= maxProjects (${maxProjects})`);
+  console.log(`[LimitCheck] Active Simulation IDs:`, activeSims.map(s => ({ id: s._id, state: s.state, name: s.projectName })));
 
   if (maxProjects !== null && activeCount >= maxProjects) {
+    console.log(`[LimitCheck] ❌ BLOCKING - User has reached limit`);
     return {
       allowed: false,
       reason: `You have ${activeCount} active projects. Limit is ${maxProjects}. Complete an existing project before creating a new one.`,
     };
   }
 
+  console.log(`[LimitCheck] ✅ ALLOWING - User can create project`);
   return {
     allowed: true,
     remaining: maxProjects === null ? null : maxProjects - activeCount,

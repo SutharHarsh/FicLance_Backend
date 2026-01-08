@@ -20,5 +20,6 @@ router.use("/support", require("./support.routes"));
 router.use("/admin", require("./admin.routes"));
 router.use("/health", require("./health.routes"));
 router.use("/dashboard", require("./dashboard.routes"));
+router.use("/newsletter", require("./newsletter.routes"));
 
 module.exports = router;

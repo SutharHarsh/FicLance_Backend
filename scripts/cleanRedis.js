@@ -29,11 +29,19 @@ async function cleanRedis() {
 
       // Clean completed jobs older than 1 hour
       const completedCleaned = await queue.clean(3600 * 1000, 100, "completed");
-      console.log(`   ✅ Cleaned ${completedCleaned.length} completed jobs`);
+      console.log(`   ✅ Cleaned ${completedCleaned.length} completed jobs (older than 1 hour)`);
 
       // Clean failed jobs older than 1 hour
       const failedCleaned = await queue.clean(3600 * 1000, 100, "failed");
-      console.log(`   ❌ Cleaned ${failedCleaned.length} failed jobs`);
+      console.log(`   ❌ Cleaned ${failedCleaned.length} failed jobs (older than 1 hour)`);
+
+      // AGGRESSIVE CLEANUP: Keep only last 10 completed jobs
+      const recentCompletedCleaned = await queue.clean(0, 10, "completed");
+      console.log(`   🗑️  Cleaned ${recentCompletedCleaned.length} old completed jobs (keeping only 10 most recent)`);
+
+      // AGGRESSIVE CLEANUP: Keep only last 20 failed jobs for debugging
+      const recentFailedCleaned = await queue.clean(0, 20, "failed");
+      console.log(`   🗑️  Cleaned ${recentFailedCleaned.length} old failed jobs (keeping only 20 most recent)`);
 
       // Clean waiting jobs (optional - be careful!)
       // const waitingCleaned = await queue.clean(0, 0, "wait");
